@@ -88,6 +88,32 @@ df_freq_prof_26 = df_freq_prof_26.sort_values(by=['MATRÍCULA', 'AULAS PREVISTAS
 df_freq_prof_26 = df_freq_prof_26.drop_duplicates(subset=['MATRÍCULA'], keep='first')
 
 
+# Adicionar coluna de Polo, de acordo com a DIREC
+mapa_polos = {
+    '01ª DIREC - NATAL': 'Polo 1',
+    '05ª DIREC - CEARÁ MIRIM': 'Polo 1',
+
+    '02ª DIREC - PARNAMIRIM': 'Polo 2',
+    '06ª DIREC - MACAU': 'Polo 2',
+    '04ª DIREC - SÃO PAULO DO POTENGI': 'Polo 2',
+    '16ª DIREC - JOÃO CÂMARA': 'Polo 2',
+    '03ª DIREC - NOVA CRUZ': 'Polo 2',
+
+    '12ª DIREC - MOSSORÓ': 'Polo 3',
+    '11ª DIREC - ASSU': 'Polo 3',
+    '08ª DIREC - ANGICOS': 'Polo 3',
+
+    '10ª DIREC - CAICÓ': 'Polo 4',
+    '07ª DIREC - SANTA CRUZ': 'Polo 4',
+    '09ª DIREC - CURRAIS NOVOS': 'Polo 4',
+
+    '15ª DIREC - PAU DOS FERROS': 'Polo 5',
+    '14ª DIREC - UMARIZAL': 'Polo 5',
+    '13ª DIREC - APODI': 'Polo 5'
+}
+
+df_freq_prof_26['POLO'] = df_freq_prof_26['DIREC'].map(mapa_polos)
+
 # São 1.713 vagas para os professores, incluindo noturno
 
 len(df_freq_prof_26)
@@ -109,25 +135,33 @@ df_regular = df_freq_prof_26[~df_freq_prof_26['TURMA'].isin(['EMPN1A', 'EMPN1B',
 # Agrupar os quantitativos de professores por escola
 # REGULAR
 # Criar indicadores para cada linha
-df_regular['Professores EF-AF'] = df_regular['SÉRIE'].isin([
-    '6º ANO', '7º ANO', '8º ANO', '9º ANO'
-])
+df_regular['Professores Anos Finais - LP'] = (df_regular['SÉRIE'].isin(['6º ANO', '7º ANO', '8º ANO', '9º ANO'])
+& df_regular['COMPONENTE'].eq('Língua Portuguesa'))
 
-df_regular['Professores EM'] = df_regular['SÉRIE'].isin([
-    '1ª SÉRIE', '2ª SÉRIE', '3ª SÉRIE'
-])
+df_regular['Professores Anos Finais - MT'] = (df_regular['SÉRIE'].isin(['6º ANO', '7º ANO', '8º ANO', '9º ANO'])
+& df_regular['COMPONENTE'].eq('Matemática'))
+
+df_regular['Professores Ensino Medio - LP'] = (df_regular['SÉRIE'].isin(['1ª SÉRIE', '2ª SÉRIE', '3ª SÉRIE'])
+& df_regular['COMPONENTE'].eq('Língua Portuguesa'))
+
+df_regular['Professores Ensino Medio - MT'] = (df_regular['SÉRIE'].isin(['1ª SÉRIE', '2ª SÉRIE', '3ª SÉRIE'])
+& df_regular['COMPONENTE'].eq('Matemática'))
+
 
 # Agrupar por escola
 df_regular_escola = (
     df_regular
     .groupby('INEP ESCOLA')
     .agg(
+        POLO=('POLO', lambda x: x.mode().iloc[0]),
         DIREC=('DIREC', lambda x: x.mode().iloc[0]),
         MUNICÍPIO=('MUNICÍPIO', lambda x: x.mode().iloc[0]),
         ESCOLA=('ESCOLA', lambda x: x.mode().iloc[0]),
         **{
-            'Professores EF-AF': ('Professores EF-AF', 'sum'),
-            'Professores EM': ('Professores EM', 'sum')
+            'Professores Anos Finais - LP': ('Professores Anos Finais - LP', 'sum'),
+            'Professores Anos Finais - MT': ('Professores Anos Finais - MT', 'sum'),
+            'Professores Ensino Medio - LP': ('Professores Ensino Medio - LP', 'sum'),
+            'Professores Ensino Medio - MT': ('Professores Ensino Medio - MT', 'sum')
         }
     )
     .reset_index()
@@ -136,25 +170,33 @@ df_regular_escola = (
 
 # NOTURNO
 # Criar indicadores para cada linha
-df_noturno['Professores EF-AF'] = df_noturno['SÉRIE'].isin([
-    '6º ANO', '7º ANO', '8º ANO', '9º ANO'
-])
+df_noturno['Professores Anos Finais - LP'] = (df_noturno['SÉRIE'].isin(['6º ANO', '7º ANO', '8º ANO', '9º ANO'])
+& df_noturno['COMPONENTE'].eq('Língua Portuguesa'))
 
-df_noturno['Professores EM'] = df_noturno['SÉRIE'].isin([
-    '1ª SÉRIE', '2ª SÉRIE', '3ª SÉRIE'
-])
+df_noturno['Professores Anos Finais - MT'] = (df_noturno['SÉRIE'].isin(['6º ANO', '7º ANO', '8º ANO', '9º ANO'])
+& df_noturno['COMPONENTE'].eq('Matemática'))
+
+df_noturno['Professores Ensino Medio - LP'] = (df_noturno['SÉRIE'].isin(['1ª SÉRIE', '2ª SÉRIE', '3ª SÉRIE'])
+& df_noturno['COMPONENTE'].eq('Língua Portuguesa'))
+
+df_noturno['Professores Ensino Medio - MT'] = (df_noturno['SÉRIE'].isin(['1ª SÉRIE', '2ª SÉRIE', '3ª SÉRIE'])
+& df_noturno['COMPONENTE'].eq('Matemática'))
+
 
 # Agrupar por escola
 df_noturno_escola = (
     df_noturno
     .groupby('INEP ESCOLA')
     .agg(
+        POLO=('POLO', lambda x: x.mode().iloc[0]),
         DIREC=('DIREC', lambda x: x.mode().iloc[0]),
         MUNICÍPIO=('MUNICÍPIO', lambda x: x.mode().iloc[0]),
         ESCOLA=('ESCOLA', lambda x: x.mode().iloc[0]),
         **{
-            'Professores EF-AF': ('Professores EF-AF', 'sum'),
-            'Professores EM': ('Professores EM', 'sum')
+            'Professores Anos Finais - LP': ('Professores Anos Finais - LP', 'sum'),
+            'Professores Anos Finais - MT': ('Professores Anos Finais - MT', 'sum'),
+            'Professores Ensino Medio - LP': ('Professores Ensino Medio - LP', 'sum'),
+            'Professores Ensino Medio - MT': ('Professores Ensino Medio - MT', 'sum')
         }
     )
     .reset_index()
@@ -162,41 +204,601 @@ df_noturno_escola = (
 
 
 # Base de dados do Saeb 2025 para ter as escolas prioritárias
+# Ler os dados de notas do Saeb 2025:
+df_saeb_af = pd.read_excel(r"D:\Scripts_Python\FGV\Professores_Formacao_2026\Notas_Saeb_2025.xlsx", sheet_name= "Anos Finais")
+df_saeb_em = pd.read_excel(r"D:\Scripts_Python\FGV\Professores_Formacao_2026\Notas_Saeb_2025.xlsx", sheet_name= "Ensino Medio")
+
+
+# Adicionar coluna de nota do Saeb 2025 nos df_regular_escola e df_noturno_escola
+# REGULAR
+# Anos Finais
+df_regular_escola['Saeb_2025_AF'] = (
+    df_regular_escola['INEP ESCOLA']
+    .map(
+        df_saeb_af.set_index('ID_ESCOLA')['VL_NOTA_MEDIA_2025']
+    )
+)
+
+# Ensino Médio
+df_regular_escola['Saeb_2025_EM'] = (
+    df_regular_escola['INEP ESCOLA']
+    .map(
+        df_saeb_em.set_index('ID_ESCOLA')['VL_NOTA_MEDIA_2025']
+    )
+)
+
+
+# NOTURNO
+# Anos Finais
+df_noturno_escola['Saeb_2025_AF'] = (
+    df_noturno_escola['INEP ESCOLA']
+    .map(
+        df_saeb_af.set_index('ID_ESCOLA')['VL_NOTA_MEDIA_2025']
+    )
+)
+
+# Ensino Médio
+df_noturno_escola['Saeb_2025_EM'] = (
+    df_noturno_escola['INEP ESCOLA']
+    .map(
+        df_saeb_em.set_index('ID_ESCOLA')['VL_NOTA_MEDIA_2025']
+    )
+)
+
+
+# Transformar as colunas de Saeb em número para possibilitar os cálculos
+# REGULAR
+df_regular_escola['Saeb_2025_AF'] = pd.to_numeric(
+    df_regular_escola['Saeb_2025_AF'],
+    errors='coerce'
+)
+
+df_regular_escola['Saeb_2025_EM'] = pd.to_numeric(
+    df_noturno_escola['Saeb_2025_EM'],
+    errors='coerce'
+)
+
+# NOTURNO
+df_regular_escola['Saeb_2025_AF'] = pd.to_numeric(
+    df_regular_escola['Saeb_2025_AF'],
+    errors='coerce'
+)
+
+df_noturno_escola['Saeb_2025_EM'] = pd.to_numeric(
+    df_noturno_escola['Saeb_2025_EM'],
+    errors='coerce'
+)
+
+# 228 vagas para Noturno
+# 1.178 vagas para professores do regular Anos Finais e Ensino Médio LP e MT
+# 307 vagas para prioridades do regular Anos Finais e Ensino Médio LP e MT
+# = 1.485 vagas para regular
+# = 1.713 vagas totais
+
+
+############################################################################################ REGULAR ############################################################################################
+# ==========================================
+# 1. VAGAS GARANTIDAS
+# ==========================================
+
+df_regular_escola['Vagas AF - LP'] = (
+    df_regular_escola['Professores Anos Finais - LP'] > 0
+).astype(int)
+
+df_regular_escola['Vagas AF - MT'] = (
+    df_regular_escola['Professores Anos Finais - MT'] > 0
+).astype(int)
+
+df_regular_escola['Vagas EM - LP'] = (
+    df_regular_escola['Professores Ensino Medio - LP'] > 0
+).astype(int)
+
+df_regular_escola['Vagas EM - MT'] = (
+    df_regular_escola['Professores Ensino Medio - MT'] > 0
+).astype(int)
+
+
+# ==========================================
+# 2. TOTAL INICIAL
+# ==========================================
+
+total_vagas = (
+    df_regular_escola['Vagas AF - LP'].sum()
+    + df_regular_escola['Vagas AF - MT'].sum()
+    + df_regular_escola['Vagas EM - LP'].sum()
+    + df_regular_escola['Vagas EM - MT'].sum()
+)
+
+vagas_restantes = 1485 - total_vagas
+
+print(f'Vagas garantidas: {total_vagas}')
+print(f'Vagas restantes: {vagas_restantes}')
+
+
+# ==========================================
+# 3. DIVIDIR AS VAGAS RESTANTES ENTRE AF E EM
+# ==========================================
+
+vagas_af = (vagas_restantes + 1) // 2
+vagas_em = vagas_restantes // 2
+
+print(f'Vagas adicionais AF: {vagas_af}')
+print(f'Vagas adicionais EM: {vagas_em}')
+
+
+# ==========================================
+# 4. ESCOLAS ELEGÍVEIS - ANOS FINAIS
+# ==========================================
+
+df_prioridade_af = (
+    df_regular_escola[
+        df_regular_escola['Saeb_2025_AF'].notna() &
+        (
+            (df_regular_escola['Professores Anos Finais - LP'] > 0) |
+            (df_regular_escola['Professores Anos Finais - MT'] > 0)
+        )
+    ]
+    .sort_values('Saeb_2025_AF')
+)
+
+
+# ==========================================
+# 5. ESCOLAS ELEGÍVEIS - ENSINO MÉDIO
+# ==========================================
+
+df_prioridade_em = (
+    df_regular_escola[
+        df_regular_escola['Saeb_2025_EM'].notna() &
+        (
+            (df_regular_escola['Professores Ensino Medio - LP'] > 0) |
+            (df_regular_escola['Professores Ensino Medio - MT'] > 0)
+        )
+    ]
+    .sort_values('Saeb_2025_EM')
+)
+
+
+# ==========================================
+# 6. DISTRIBUIÇÃO AF
+# ==========================================
+
+while vagas_af > 0:
+
+    vagas_distribuidas_rodada = 0
+
+    for idx in df_prioridade_af.index:
+
+        if vagas_af == 0:
+            break
+
+        tem_lp = (
+            df_regular_escola.loc[
+                idx, 'Professores Anos Finais - LP'
+            ] > 0
+        )
+
+        tem_mt = (
+            df_regular_escola.loc[
+                idx, 'Professores Anos Finais - MT'
+            ] > 0
+        )
+
+        # --------------------------------------
+        # AF: LP e MT
+        # --------------------------------------
+
+        if tem_lp and tem_mt:
+
+            if vagas_af >= 2:
+
+                df_regular_escola.loc[
+                    idx, 'Vagas AF - LP'
+                ] += 1
+
+                df_regular_escola.loc[
+                    idx, 'Vagas AF - MT'
+                ] += 1
+
+                vagas_af -= 2
+                vagas_distribuidas_rodada += 2
+
+            else:
+
+                total_lp = df_regular_escola['Vagas AF - LP'].sum()
+                total_mt = df_regular_escola['Vagas AF - MT'].sum()
+
+                if total_lp <= total_mt:
+                    df_regular_escola.loc[
+                        idx, 'Vagas AF - LP'
+                    ] += 1
+                else:
+                    df_regular_escola.loc[
+                        idx, 'Vagas AF - MT'
+                    ] += 1
+
+                vagas_af -= 1
+                vagas_distribuidas_rodada += 1
+
+        # --------------------------------------
+        # AF: somente LP
+        # --------------------------------------
+
+        elif tem_lp:
+
+            df_regular_escola.loc[
+                idx, 'Vagas AF - LP'
+            ] += 1
+
+            vagas_af -= 1
+            vagas_distribuidas_rodada += 1
+
+        # --------------------------------------
+        # AF: somente MT
+        # --------------------------------------
+
+        elif tem_mt:
+
+            df_regular_escola.loc[
+                idx, 'Vagas AF - MT'
+            ] += 1
+
+            vagas_af -= 1
+            vagas_distribuidas_rodada += 1
+
+    if vagas_distribuidas_rodada == 0:
+        break
+
+
+# ==========================================
+# 7. DISTRIBUIÇÃO EM
+# ==========================================
+
+while vagas_em > 0:
+
+    vagas_distribuidas_rodada = 0
+
+    for idx in df_prioridade_em.index:
+
+        if vagas_em == 0:
+            break
+
+        tem_lp = (
+            df_regular_escola.loc[
+                idx, 'Professores Ensino Medio - LP'
+            ] > 0
+        )
+
+        tem_mt = (
+            df_regular_escola.loc[
+                idx, 'Professores Ensino Medio - MT'
+            ] > 0
+        )
+
+        # --------------------------------------
+        # EM: LP e MT
+        # --------------------------------------
+
+        if tem_lp and tem_mt:
+
+            if vagas_em >= 2:
+
+                df_regular_escola.loc[
+                    idx, 'Vagas EM - LP'
+                ] += 1
+
+                df_regular_escola.loc[
+                    idx, 'Vagas EM - MT'
+                ] += 1
+
+                vagas_em -= 2
+                vagas_distribuidas_rodada += 2
+
+            else:
+
+                total_lp = df_regular_escola['Vagas EM - LP'].sum()
+                total_mt = df_regular_escola['Vagas EM - MT'].sum()
+
+                if total_lp <= total_mt:
+                    df_regular_escola.loc[
+                        idx, 'Vagas EM - LP'
+                    ] += 1
+                else:
+                    df_regular_escola.loc[
+                        idx, 'Vagas EM - MT'
+                    ] += 1
+
+                vagas_em -= 1
+                vagas_distribuidas_rodada += 1
+
+        # --------------------------------------
+        # EM: somente LP
+        # --------------------------------------
+
+        elif tem_lp:
+
+            df_regular_escola.loc[
+                idx, 'Vagas EM - LP'
+            ] += 1
+
+            vagas_em -= 1
+            vagas_distribuidas_rodada += 1
+
+        # --------------------------------------
+        # EM: somente MT
+        # --------------------------------------
+
+        elif tem_mt:
+
+            df_regular_escola.loc[
+                idx, 'Vagas EM - MT'
+            ] += 1
+
+            vagas_em -= 1
+            vagas_distribuidas_rodada += 1
+
+    if vagas_distribuidas_rodada == 0:
+        break
+
+
+# ==========================================
+# 8. CONFERÊNCIA FINAL
+# ==========================================
+
+total_af_lp = df_regular_escola['Vagas AF - LP'].sum()
+total_af_mt = df_regular_escola['Vagas AF - MT'].sum()
+
+total_em_lp = df_regular_escola['Vagas EM - LP'].sum()
+total_em_mt = df_regular_escola['Vagas EM - MT'].sum()
+
+total_af = total_af_lp + total_af_mt
+total_em = total_em_lp + total_em_mt
+
+total_final = total_af + total_em
+
+print('--- ANOS FINAIS ---')
+print(f'AF - LP: {total_af_lp}')
+print(f'AF - MT: {total_af_mt}')
+print(f'Total AF: {total_af}')
+
+print()
+
+print('--- ENSINO MÉDIO ---')
+print(f'EM - LP: {total_em_lp}')
+print(f'EM - MT: {total_em_mt}')
+print(f'Total EM: {total_em}')
+
+print()
+
+print(f'Total final: {total_final}')
+print(f'Diferença para 1.178: {1485 - total_final}')
 
 
 
+############################################################################################ NOTURNO ############################################################################################
+# ==========================================
+# 1. VAGAS GARANTIDAS
+# ==========================================
+
+df_noturno_escola['Vagas EM - LP'] = (
+    df_noturno_escola['Professores Ensino Medio - LP'] > 0
+).astype(int)
+
+df_noturno_escola['Vagas EM - MT'] = (
+    df_noturno_escola['Professores Ensino Medio - MT'] > 0
+).astype(int)
 
 
+# ==========================================
+# 2. TOTAL INICIAL E VAGAS RESTANTES
+# ==========================================
+
+total_vagas = (
+    df_noturno_escola['Vagas EM - LP'].sum()
+    + df_noturno_escola['Vagas EM - MT'].sum()
+)
+
+vagas_restantes = 228 - total_vagas
+
+print(f'Vagas garantidas: {total_vagas}')
+print(f'Vagas restantes: {vagas_restantes}')
 
 
+# ==========================================
+# 3. ESCOLAS ELEGÍVEIS PARA DISTRIBUIÇÃO
+# ==========================================
+
+df_prioridade = (
+    df_noturno_escola[
+        df_noturno_escola['Saeb_2025_EM'].notna() &
+        (
+            (df_noturno_escola['Professores Ensino Medio - LP'] > 0) |
+            (df_noturno_escola['Professores Ensino Medio - MT'] > 0)
+        )
+    ]
+    .sort_values('Saeb_2025_EM')
+)
 
 
+# ==========================================
+# 4. DISTRIBUIÇÃO EM RODADAS
+# ==========================================
+
+while vagas_restantes > 0:
+
+    vagas_distribuidas_rodada = 0
+
+    # Percorre as escolas da menor para a maior nota Saeb
+    for idx in df_prioridade.index:
+
+        if vagas_restantes == 0:
+            break
+
+        tem_lp = (
+            df_noturno_escola.loc[idx, 'Professores Ensino Medio - LP'] > 0
+        )
+
+        tem_mt = (
+            df_noturno_escola.loc[idx, 'Professores Ensino Medio - MT'] > 0
+        )
+
+        # ==========================================
+        # ESCOLA TEM LP E MT
+        # ==========================================
+        if tem_lp and tem_mt:
+
+            # Se ainda existem pelo menos 2 vagas,
+            # dá 1 para LP e 1 para MT
+            if vagas_restantes >= 2:
+
+                df_noturno_escola.loc[idx, 'Vagas EM - LP'] += 1
+                df_noturno_escola.loc[idx, 'Vagas EM - MT'] += 1
+
+                vagas_restantes -= 2
+                vagas_distribuidas_rodada += 2
+
+            # Se existe somente 1 vaga restante,
+            # escolhe a área com menor quantidade acumulada
+            else:
+
+                total_lp = df_noturno_escola['Vagas EM - LP'].sum()
+                total_mt = df_noturno_escola['Vagas EM - MT'].sum()
+
+                if total_lp <= total_mt:
+                    df_noturno_escola.loc[idx, 'Vagas EM - LP'] += 1
+                else:
+                    df_noturno_escola.loc[idx, 'Vagas EM - MT'] += 1
+
+                vagas_restantes -= 1
+                vagas_distribuidas_rodada += 1
 
 
+        # ==========================================
+        # ESCOLA TEM SOMENTE LP
+        # ==========================================
+        elif tem_lp:
+
+            df_noturno_escola.loc[idx, 'Vagas EM - LP'] += 1
+
+            vagas_restantes -= 1
+            vagas_distribuidas_rodada += 1
 
 
+        # ==========================================
+        # ESCOLA TEM SOMENTE MT
+        # ==========================================
+        elif tem_mt:
+
+            df_noturno_escola.loc[idx, 'Vagas EM - MT'] += 1
+
+            vagas_restantes -= 1
+            vagas_distribuidas_rodada += 1
 
 
+    # ==========================================
+    # SEGURANÇA CONTRA LOOP INFINITO
+    # ==========================================
+
+    if vagas_distribuidas_rodada == 0:
+        break
 
 
+# ==========================================
+# 5. CONFERÊNCIA FINAL
+# ==========================================
+
+total_lp = df_noturno_escola['Vagas EM - LP'].sum()
+total_mt = df_noturno_escola['Vagas EM - MT'].sum()
+total_final = total_lp + total_mt
+
+print(f'Vagas LP: {total_lp}')
+print(f'Vagas MT: {total_mt}')
+print(f'Total final: {total_final}')
+print(f'Vagas restantes: {228 - total_final}')
 
 
+############################################### AGREGAÇÕES ###############################################
+colunas_vagas = [
+    'Vagas AF - LP',
+    'Vagas AF - MT',
+    'Vagas EM - LP',
+    'Vagas EM - MT'
+]
+
+# Função para agregar por alguma coluna
+def criar_agrupamento_vagas(df_regular, df_noturno, coluna_agrupamento):
+
+    # -------------------------------
+    # Regular
+    # -------------------------------
+    df_regular_temp = df_regular[
+        [coluna_agrupamento] + colunas_vagas
+    ].copy()
 
 
+    # -------------------------------
+    # Noturno
+    # -------------------------------
+    df_noturno_temp = df_noturno[
+        [coluna_agrupamento, 'Vagas EM - LP', 'Vagas EM - MT']
+    ].copy()
+
+    # AF não existe no noturno → preencher com 0
+    df_noturno_temp['Vagas AF - LP'] = 0
+    df_noturno_temp['Vagas AF - MT'] = 0
+
+    # Deixar as colunas na mesma ordem
+    df_noturno_temp = df_noturno_temp[
+        [coluna_agrupamento] + colunas_vagas
+    ]
 
 
+    # -------------------------------
+    # Concatenar Regular + Noturno
+    # -------------------------------
+    df_temp = pd.concat(
+        [df_regular_temp, df_noturno_temp],
+        ignore_index=True
+    )
 
 
+    # -------------------------------
+    # Agrupar e somar
+    # -------------------------------
+    df_resultado = (
+        df_temp
+        .groupby(coluna_agrupamento, as_index=False)[colunas_vagas]
+        .sum()
+    )
 
 
+    return df_resultado
 
 
+# Dataframe agrupado por DIREC
+df_direc = criar_agrupamento_vagas(
+    df_regular_escola,
+    df_noturno_escola,
+    'DIREC'
+)
 
 
+# Dataframe agrupado por POLO
+df_polo = criar_agrupamento_vagas(
+    df_regular_escola,
+    df_noturno_escola,
+    'POLO'
+)
 
 
-
-
+##### Exportar para Excel
+with pd.ExcelWriter('professores_formacao_2026.xlsx') as writer:
+    df_direc.to_excel(writer, sheet_name='Direc', index=False)
+    df_polo.to_excel(writer, sheet_name='Polo', index=False)
+    df_regular_escola.to_excel(writer, sheet_name='Escolas - Diurno', index=False)
+    df_noturno_escola.to_excel(writer, sheet_name='Escolas - Noturno', index=False)
+    df_freq_prof_26.to_excel(writer, sheet_name='Todos Professores', index=False)
+    df_regular.to_excel(writer, sheet_name='Professores Diurno', index=False)
+    df_noturno.to_excel(writer, sheet_name='Professores Noturno', index=False)
 
 
 
