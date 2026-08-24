@@ -12,8 +12,6 @@ Para Componentes Curriculares, considerar somente:
 - "Matemática".
 
 Para Séries, considerar:
-- 6º ano,
-- 7º ano,
 - 8º ano,
 - 9º ano, 
 - 1ª série,
@@ -71,8 +69,6 @@ df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['COMPONENTE'].isin(componentes
 series = ['1ª SÉRIE',
           '2ª SÉRIE',
           '3ª SÉRIE',
-          '6º ANO',
-          '7º ANO',
           '8º ANO',
           '9º ANO']
 
@@ -269,10 +265,8 @@ df_noturno_escola['Saeb_2025_EM'] = pd.to_numeric(
     errors='coerce'
 )
 
-# 228 vagas para Noturno
-# 1.178 vagas para professores do regular Anos Finais e Ensino Médio LP e MT
-# 307 vagas para prioridades do regular Anos Finais e Ensino Médio LP e MT
-# = 1.485 vagas para regular
+# 267 vagas para Noturno
+# = 1.446 vagas para Diurno
 # = 1.713 vagas totais
 
 
@@ -309,7 +303,7 @@ total_vagas_regular = (
     + df_regular_escola['Vagas EM - MT'].sum()
 )
 
-vagas_restantes_regular = 1485 - total_vagas_regular
+vagas_restantes_regular = 2000 - total_vagas_regular
 
 print(f'Vagas garantidas: {total_vagas_regular}')
 print(f'Vagas restantes: {vagas_restantes_regular}')
@@ -767,7 +761,7 @@ print(f'Total EM: {total_em}')
 print()
 
 print(f'Total final: {total_final_regular}')
-print(f'Vagas restantes: {1485 - total_final_regular}')
+print(f'Vagas restantes: {1446 - total_final_regular}')
 
 
 # =============================================================================
@@ -832,7 +826,7 @@ total_vagas_noturno = (
     + df_noturno_escola['Vagas EM - MT'].sum()
 )
 
-vagas_restantes_noturno = 228 - total_vagas_noturno
+vagas_restantes_noturno = 267 - total_vagas_noturno
 
 print(f'Vagas garantidas: {total_vagas_noturno}')
 print(f'Vagas restantes: {vagas_restantes_noturno}')
@@ -1088,7 +1082,7 @@ print(f'Vagas EM - MT: {total_mt_noturno}')
 print(f'Total final: {total_final_noturno}')
 
 print(
-    f'Vagas restantes: {228 - total_final_noturno}'
+    f'Vagas restantes: {267 - total_final_noturno}'
 )
 
 
