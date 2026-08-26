@@ -12,8 +12,7 @@ Para Componentes Curriculares, considerar somente:
 - "Matemática".
 
 Para Séries, considerar:
-- 8º ano,
-- 9º ano, 
+- 9º ano,
 - 1ª série,
 - 2ª série,
 - 3ª série.
@@ -21,6 +20,22 @@ Para Séries, considerar:
 Considerar somente Ensino Regular (excluir EJA e EPT).
 
 Para identificação de escolas com ensino noturno, considerar o código das turmas.
+
+
+Regra para alocação das vagas:
+1.791 vagas totais:
+- 48 para as DIRECs;
+- 30 para SEEC;
+
+= 1.713 vagas para professores e coordenadores.
+
+Dessas:
+- 1 vaga para coordenador por escola que oferte 9º ano EF e Ensino Médio (464 vagas);
+
+= 1.249 vagas para professores (diurnos e noturnos)
+- 1 para professor de LP para cada etapa (Anos Finais EF e Ensino Médio) por escola;
+- 1 para professor de LP para cada etapa (Anos Finais EF e Ensino Médio) por escola;
+- o que sobra para noturno.
 
 '''
 # Importação das bibliotecas
@@ -33,6 +48,40 @@ import warnings
 warnings.filterwarnings('ignore')
 import openpyxl
 import re
+
+
+##### Saber o número de escolas para saber a quantidade de vagas para coordenadores
+# Relatório geral de matrículas - 2026
+df_geral_26 = pd.read_excel(r"C:\Users\hugob\Downloads\20260826_Relatório Geral de Estudantes - Matrículas.xlsx", skiprows=2)
+
+
+# Manter somente as Séries de interesse:
+series = ['1ª SÉRIE',
+          '2ª SÉRIE',
+          '3ª SÉRIE',
+          '9º ANO']
+
+df_geral_26 = df_geral_26[df_geral_26['SÉRIE'].isin(series)]
+
+# NÃO TEVE EXCLUSÃO DE ETAPA, pois tem que incluir os cursos técnicos articulados e integrados ao Médio, pois esses estudantes tem ensino regular também
+# Manter somente as etapas de ensino de interesse (excluir EPT e EJA)
+# df_geral_26 = df_geral_26[df_geral_26['ETAPA DE ENSINO'].isin(['ENSINO MÉDIO POTIGUAR', 'ENSINO FUNDAMENTAL'])]
+
+# Manter o registro somente dos alunos Matriculados
+df_geral_26 = df_geral_26[df_geral_26['SITUAÇÃO'].isin(['MATRICULADO'])]
+
+df_geral_26['ETAPA DE ENSINO'].unique()
+
+
+# Contar a quantidade de escolas para saber as vagas de coordenadores
+# Manter as colunas para a quantidade de escolas
+df_geral_26 = df_geral_26[['DIREC', 'CÓDIGO INEP ESCOLA', 'ESCOLA']]
+
+# Excluir duplicatas de 'CÓDIGO INEP ESCOLA'
+df_geral_26 = df_geral_26.drop_duplicates(subset='CÓDIGO INEP ESCOLA', keep='first')
+
+# Total de escolas: 464
+len(df_geral_26['CÓDIGO INEP ESCOLA'].unique())
 
 
 # RELATÓRIO DE FREQUÊNCIA de PROFESSORES- 2º TRIMESTRE (ABRIL, MAIO E JUNHO) - 2026
@@ -57,7 +106,6 @@ df_freq_prof_26 = pd.concat(dfs, ignore_index=True)
 # DATAFRAMES RESERVAS
 df_freq_prof_26_reserva = df_freq_prof_26.copy(deep=True)
 
-
 # Manter somente os componentes de interesse (Língua Portuguesa e Matemática)
 componentes = ['Língua Portuguesa',
                 'Matemática']
@@ -69,7 +117,6 @@ df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['COMPONENTE'].isin(componentes
 series = ['1ª SÉRIE',
           '2ª SÉRIE',
           '3ª SÉRIE',
-          '8º ANO',
           '9º ANO']
 
 df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['SÉRIE'].isin(series)]
@@ -110,10 +157,10 @@ mapa_polos = {
 
 df_freq_prof_26['POLO'] = df_freq_prof_26['DIREC'].map(mapa_polos)
 
-# São 1.713 vagas para os professores, incluindo noturno
+# São 1.276 vagas para os professores, incluindo noturno
 
 len(df_freq_prof_26)
-# Tem 1.913 professores na base, incluindo Noturno, então só 200 ficam de fora da Formação.
+# Tem 1.647 professores na base, incluindo Noturno, então só 371 ficam de fora da Formação.
 
 
 # Turmas noturnas
@@ -265,9 +312,9 @@ df_noturno_escola['Saeb_2025_EM'] = pd.to_numeric(
     errors='coerce'
 )
 
-# 267 vagas para Noturno
-# = 1.446 vagas para Diurno
-# = 1.713 vagas totais
+# 228 vagas para Noturno
+# = 1.021 vagas para Diurno
+# = 1.249 vagas totais para professores
 
 
 ############################################################################################ REGULAR ############################################################################################
@@ -303,7 +350,7 @@ total_vagas_regular = (
     + df_regular_escola['Vagas EM - MT'].sum()
 )
 
-vagas_restantes_regular = 2000 - total_vagas_regular
+vagas_restantes_regular = 1021 - total_vagas_regular
 
 print(f'Vagas garantidas: {total_vagas_regular}')
 print(f'Vagas restantes: {vagas_restantes_regular}')
@@ -761,7 +808,7 @@ print(f'Total EM: {total_em}')
 print()
 
 print(f'Total final: {total_final_regular}')
-print(f'Vagas restantes: {1446 - total_final_regular}')
+print(f'Vagas restantes: {1021 - total_final_regular}')
 
 
 # =============================================================================
@@ -826,7 +873,7 @@ total_vagas_noturno = (
     + df_noturno_escola['Vagas EM - MT'].sum()
 )
 
-vagas_restantes_noturno = 267 - total_vagas_noturno
+vagas_restantes_noturno = 228 - total_vagas_noturno
 
 print(f'Vagas garantidas: {total_vagas_noturno}')
 print(f'Vagas restantes: {vagas_restantes_noturno}')
@@ -1082,7 +1129,7 @@ print(f'Vagas EM - MT: {total_mt_noturno}')
 print(f'Total final: {total_final_noturno}')
 
 print(
-    f'Vagas restantes: {267 - total_final_noturno}'
+    f'Vagas restantes: {228 - total_final_noturno}'
 )
 
 
@@ -1194,6 +1241,7 @@ with pd.ExcelWriter('professores_formacao_2026.xlsx') as writer:
     df_freq_prof_26.to_excel(writer, sheet_name='Todos Professores', index=False)
     df_regular.to_excel(writer, sheet_name='Professores Diurno', index=False)
     df_noturno.to_excel(writer, sheet_name='Professores Noturno', index=False)
+    df_geral_26.to_excel(writer, sheet_name='Coordenadores_Escolas', index=False)
 
 
 
