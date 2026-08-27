@@ -17,48 +17,6 @@ Deixar 1 vaga para cada etapa e componente (se a escola ofertar). Ou seja:
 
 '''
 
-
-'''
-##### LÓGICA ANTIGA #####
-Contabilizar todos os professores da rede para os Anos Finais do Ensino Fundamental e Ensino Médio. 
-Essa informação vem do Relatório de Frequência Mensal de Professsores.
-(SigEduc > Diário de Classe > Relatórios > Frequência > Relatório de Acompanhamento de Frequência Mensal Professor)
-
-Vou ter lista nominal de todos os professores.
-Como o mesmo professor pode dar aula em mais de uma escola e série, considerar a série e escola que ele tem maior número de aulas dadas.
-Como a frequência de lançamento das aulas é baixa (em muitos casos, 'AULAS DADAS' = 0), vou considerar 'AULAS PREVISTAS' para definir o local do professor.
-
-Para Componentes Curriculares, considerar somente:
-- "Língua Portuguesa",
-- "Matemática".
-
-Para Séries, considerar:
-- 9º ano,
-- 1ª série,
-- 2ª série,
-- 3ª série.
-
-Considerar somente Ensino Regular (excluir EJA e EPT).
-
-Para identificação de escolas com ensino noturno, considerar o código das turmas.
-
-
-Regra para alocação das vagas:
-1.791 vagas totais:
-- 48 para as DIRECs;
-- 30 para SEEC;
-
-= 1.713 vagas para professores e coordenadores.
-
-Dessas:
-- 1 vaga para coordenador por escola que oferte 9º ano EF e Ensino Médio (464 vagas);
-
-= 1.249 vagas para professores (diurnos e noturnos)
-- 1 para professor de LP para cada etapa (Anos Finais EF e Ensino Médio) por escola;
-- 1 para professor de LP para cada etapa (Anos Finais EF e Ensino Médio) por escola;
-- o que sobra para noturno.
-
-'''
 # Importação das bibliotecas
 import pandas as pd
 import glob
@@ -117,8 +75,23 @@ df_professores = df_professores[df_professores['SÉRIE'].isin(series)]
 # Manter o registro somente dos alunos Matriculados
 df_professores = df_professores[df_professores['SITUAÇÃO'].isin(['MATRICULADO'])]
 
+
 # Manter somente as colunas de interesse
-df_professores = df_professores[['DIREC', 'CÓDIGO INEP ESCOLA', 'ESCOLA', 'SÉRIE']]
+df_professores = df_professores[['DIREC', 'CÓDIGO INEP ESCOLA', 'ESCOLA', 'SÉRIE', 'TURMA']]
+
+# Cria a coluna indicando turma noturna
+turmas_noturnas = [
+    'EMPN1A', 'EMPN1B', 'EMPN1C', 'EMPN1D',
+    'EMPN2A', 'EMPN2B', 'EMPN2C', 'EMPN2D',
+    'EMPN3A', 'EMPN3B', 'EMPN3C', 'EMPN3D'
+]
+
+df_professores['NOTURNO'] = np.where(
+    df_professores['TURMA'].isin(turmas_noturnas),
+    'Sim',
+    'Não'
+)
+
 
 # Agrupar por 'CÓDIGO INEP' e a 'SÉRIE' deve indicar todas as séries separadas por vírgula
 df_professores_agrupado = (
@@ -127,8 +100,10 @@ df_professores_agrupado = (
     .agg({
         'DIREC': 'first',
         'ESCOLA': 'first',
-        'SÉRIE': lambda x: ', '.join(x.astype(str).unique())
+        'SÉRIE': lambda x: ', '.join(x.astype(str).unique()),
+        'NOTURNO': lambda x: 'Sim' if (x == 'Sim').any() else 'Não'
     })
+    .rename(columns={'NOTURNO': 'OFERTA_NOTURNO'})
 )
 
 
@@ -138,7 +113,6 @@ df_professores_agrupado['OFERTA_9EF'] = np.where(
     'Sim',
     'Não'
 )
-
 
 # Criar a coluna 'OFERTA_EM' para saber se a escola oferece Ensino Médio (se tem SÉRIE = '1ª SÉRIE' ou '2ª SÉRIE' ou '3ª SÉRIE')
 df_professores_agrupado['OFERTA_EM'] = np.where(
@@ -150,31 +124,180 @@ df_professores_agrupado['OFERTA_EM'] = np.where(
     'Não'
 )
 
+
+# Adicionar coluna de Polo, de acordo com a DIREC
+mapa_polos = {
+    '01ª DIREC - NATAL': 'Polo 1',
+    '05ª DIREC - CEARÁ MIRIM': 'Polo 1',
+
+    '02ª DIREC - PARNAMIRIM': 'Polo 2',
+    '06ª DIREC - MACAU': 'Polo 2',
+    '04ª DIREC - SÃO PAULO DO POTENGI': 'Polo 2',
+    '16ª DIREC - JOÃO CÂMARA': 'Polo 2',
+    '03ª DIREC - NOVA CRUZ': 'Polo 2',
+
+    '12ª DIREC - MOSSORÓ': 'Polo 3',
+    '11ª DIREC - ASSU': 'Polo 3',
+    '08ª DIREC - ANGICOS': 'Polo 3',
+
+    '10ª DIREC - CAICÓ': 'Polo 4',
+    '07ª DIREC - SANTA CRUZ': 'Polo 4',
+    '09ª DIREC - CURRAIS NOVOS': 'Polo 4',
+
+    '15ª DIREC - PAU DOS FERROS': 'Polo 5',
+    '14ª DIREC - UMARIZAL': 'Polo 5',
+    '13ª DIREC - APODI': 'Polo 5'
+}
+
+df_professores_agrupado['POLO'] = df_professores_agrupado['DIREC'].map(mapa_polos)
+
+
+# Adicionar a coluna da Nota do Saeb, de acordo com o código Inep
+# Base de dados do Saeb 2025 para ter as escolas prioritárias
+# Ler os dados de notas do Saeb 2025:
+df_saeb_em = pd.read_excel(r"D:\Scripts_Python\FGV\Professores_Formacao_2026\Notas_Saeb_2025.xlsx", sheet_name= "Ensino Medio")
+
+
+# Adicionar coluna de nota do Saeb 2025 no df_professores_agrupado
+# Ensino Médio
+df_professores_agrupado['Saeb_2025_EM'] = (
+    df_professores_agrupado['CÓDIGO INEP ESCOLA']
+    .map(
+        df_saeb_em.set_index('ID_ESCOLA')['VL_NOTA_MEDIA_2025']
+    )
+)
+
+# Transformar a coluna de Saeb em número para possibilitar os cálculos
+df_professores_agrupado['Saeb_2025_EM'] = pd.to_numeric(
+    df_professores_agrupado['Saeb_2025_EM'],
+    errors='coerce'
+)
+
+
 # Criar coluna 'Vagas - Coordenadores' para indicar a vaga de 1 coordenador por escola
 df_professores_agrupado['Vagas - Coordenadores'] = 1
 
 
-# Criar as colunas de vagas para cada componente e cada etapa de ensino de acordo com os valores das colunas 'OFERTA_9EF' e 'OFERTA_EM'
+# Criar as 4 novas colunas de vagas para cada componente e cada etapa de ensino de acordo com os valores das colunas 'OFERTA_9EF' e 'OFERTA_EM'
 # Vagas AF - LP; Vagas AF - MT; Vagas EM - LP; Vagas EM - MT
+df_professores_agrupado['Vagas AF - LP'] = np.where(
+    df_professores_agrupado['OFERTA_9EF'] == 'Sim', 1, 0
+)
+
+df_professores_agrupado['Vagas AF - MT'] = np.where(
+    df_professores_agrupado['OFERTA_9EF'] == 'Sim', 1, 0
+)
+
+df_professores_agrupado['Vagas EM - LP'] = np.where(
+    df_professores_agrupado['OFERTA_EM'] == 'Sim', 1, 0
+)
+
+df_professores_agrupado['Vagas EM - MT'] = np.where(
+    df_professores_agrupado['OFERTA_EM'] == 'Sim', 1, 0
+)
 
 
+# Criar colunas para vagas para Noturno
+# Vagas EM (Noturno) - LP; Vagas EM (Noturno) - MT
+# Essas vagas devem se preecnhidas por escolas que tem noturno (OFERTA_NOTURNO = 'Sim') e tem as menores notas para Saeb_2025_EM
+# São 95 vagas
+# Inicializar as duas colunas com 0
+df_professores_agrupado['Vagas EM (Noturno) - LP'] = 0
+df_professores_agrupado['Vagas EM (Noturno) - MT'] = 0
+
+# Selecionar somente escolas que oferecem Ensino Médio Noturno
+df_noturno = df_professores_agrupado[
+    df_professores_agrupado['OFERTA_NOTURNO'] == 'Sim'
+].sort_values('Saeb_2025_EM')
+
+# 47 escolas recebem 1 vaga de LP e 1 vaga de MT
+indices_47 = df_noturno.head(47).index
+
+df_professores_agrupado.loc[indices_47, 'Vagas EM (Noturno) - LP'] = 1
+df_professores_agrupado.loc[indices_47, 'Vagas EM (Noturno) - MT'] = 1
+
+# A 48ª escola recebe a vaga restante de LP
+if len(df_noturno) >= 48:
+    indice_48 = df_noturno.iloc[47].name
+
+    df_professores_agrupado.loc[
+        indice_48,
+        'Vagas EM (Noturno) - LP'
+    ] = 1
 
 
+# Criar coluna que soma todas as vagas para a escola
+# Vagas - Total
+df_professores_agrupado['Vagas - Total'] = (
+    df_professores_agrupado['Vagas - Coordenadores'] +
+    df_professores_agrupado['Vagas AF - LP'] +
+    df_professores_agrupado['Vagas AF - MT'] +
+    df_professores_agrupado['Vagas EM - LP'] +
+    df_professores_agrupado['Vagas EM - MT'] +
+    df_professores_agrupado['Vagas EM (Noturno) - LP'] +
+    df_professores_agrupado['Vagas EM (Noturno) - MT']
+)
 
 
+# Ajustar a ordem das colunas
+df_professores_agrupado = df_professores_agrupado[
+    [
+        'POLO',
+        'DIREC',
+        'CÓDIGO INEP ESCOLA',
+        'ESCOLA',
+        'SÉRIE',
+        'OFERTA_NOTURNO',
+        'OFERTA_9EF',
+        'OFERTA_EM',
+        'Saeb_2025_EM',
+        'Vagas - Coordenadores',
+        'Vagas AF - LP',
+        'Vagas AF - MT',
+        'Vagas EM - LP',
+        'Vagas EM - MT',
+        'Vagas EM (Noturno) - LP',
+        'Vagas EM (Noturno) - MT',
+        'Vagas - Total'
+    ]
+]
 
 
+# Dataframes agrupados
+colunas_vagas = [
+    'Vagas - Coordenadores',
+    'Vagas AF - LP',
+    'Vagas AF - MT',
+    'Vagas EM - LP',
+    'Vagas EM - MT',
+    'Vagas EM (Noturno) - LP',
+    'Vagas EM (Noturno) - MT',
+    'Vagas - Total'
+]
+
+# Dataframe de vagas agrupado por DIREC
+df_direc = (
+    df_professores_agrupado
+    .groupby('DIREC', as_index=False)[colunas_vagas]
+    .sum()
+)
 
 
+# Dataframe de vagas agrupado por POLO
+df_polo = (
+    df_professores_agrupado
+    .groupby('POLO', as_index=False)[colunas_vagas]
+    .sum()
+)
 
 
-
-
-
+df_professores_agrupado.columns
 
 ##### Exportar para Excel
 with pd.ExcelWriter('20260827_professores_formacao_2026.xlsx') as writer:
-    df_professores_agrupado.to_excel(writer, sheet_name='Professores', index=False)
+    df_direc.to_excel(writer, sheet_name='Direc', index=False)
+    df_polo.to_excel(writer, sheet_name='Polo', index=False)
+    df_professores_agrupado.to_excel(writer, sheet_name='Vagas_por_Escola', index=False)
     df_escolas.to_excel(writer, sheet_name='Coordenadores_Escolas', index=False)
 
 
@@ -205,6 +328,47 @@ with pd.ExcelWriter('20260827_professores_formacao_2026.xlsx') as writer:
 
 ##### Saber o número de escolas para saber a quantidade de vagas para coordenadores
 ##### LÓGICA ANTIGA #####
+'''
+##### LÓGICA ANTIGA #####
+Contabilizar todos os professores da rede para os Anos Finais do Ensino Fundamental e Ensino Médio. 
+Essa informação vem do Relatório de Frequência Mensal de Professsores.
+(SigEduc > Diário de Classe > Relatórios > Frequência > Relatório de Acompanhamento de Frequência Mensal Professor)
+
+Vou ter lista nominal de todos os professores.
+Como o mesmo professor pode dar aula em mais de uma escola e série, considerar a série e escola que ele tem maior número de aulas dadas.
+Como a frequência de lançamento das aulas é baixa (em muitos casos, 'AULAS DADAS' = 0), vou considerar 'AULAS PREVISTAS' para definir o local do professor.
+
+Para Componentes Curriculares, considerar somente:
+- "Língua Portuguesa",
+- "Matemática".
+
+Para Séries, considerar:
+- 9º ano,
+- 1ª série,
+- 2ª série,
+- 3ª série.
+
+Considerar somente Ensino Regular (excluir EJA e EPT).
+
+Para identificação de escolas com ensino noturno, considerar o código das turmas.
+
+
+Regra para alocação das vagas:
+1.791 vagas totais:
+- 48 para as DIRECs;
+- 30 para SEEC;
+
+= 1.713 vagas para professores e coordenadores.
+
+Dessas:
+- 1 vaga para coordenador por escola que oferte 9º ano EF e Ensino Médio (464 vagas);
+
+= 1.249 vagas para professores (diurnos e noturnos)
+- 1 para professor de LP para cada etapa (Anos Finais EF e Ensino Médio) por escola;
+- 1 para professor de LP para cada etapa (Anos Finais EF e Ensino Médio) por escola;
+- o que sobra para noturno.
+
+'''
 
 # Relatório geral de matrículas - 2026
 df_geral_26 = pd.read_excel(r"C:\Users\hugob\Downloads\20260826_Relatório Geral de Estudantes - Matrículas.xlsx", skiprows=2)
