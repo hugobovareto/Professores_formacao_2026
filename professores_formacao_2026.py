@@ -1,4 +1,25 @@
 '''
+##### NOVA LÓGICA #####
+Deixar 1 vaga para cada etapa e componente (se a escola ofertar). Ou seja:
+- 1 vaga para LP para 9º ano EF.
+- 1 vaga para MT para 9º ano EF.
+- 1 vaga para LP para Ensino Médio.
+- 1 vaga para MT para Ensino Médio.
+
+1.791 vagas totais:
+- 48 para as DIRECs;
+- 30 para SEEC;
+
+= 1.713 vagas para professores e coordenadores.
+- 464 escolas, logo 464 vagas para coordenadores.
+
+= 1.249 vagas para professores para dsitribuir entre os componentes e etapas.
+
+'''
+
+
+'''
+##### LÓGICA ANTIGA #####
 Contabilizar todos os professores da rede para os Anos Finais do Ensino Fundamental e Ensino Médio. 
 Essa informação vem do Relatório de Frequência Mensal de Professsores.
 (SigEduc > Diário de Classe > Relatórios > Frequência > Relatório de Acompanhamento de Frequência Mensal Professor)
@@ -49,8 +70,142 @@ warnings.filterwarnings('ignore')
 import openpyxl
 import re
 
+##### NOVA LÓGICA #####
+# Relatório geral de matrículas - 2026
+df_geral_26 = pd.read_excel(r"C:\Users\hugob\Downloads\20260826_Relatório Geral de Estudantes - Matrículas.xlsx", skiprows=2)
+
+# DATAFRAMES RESERVAS
+df_escolas = df_geral_26.copy(deep=True)
+
+# Manter somente as Séries de interesse:
+series = ['1ª SÉRIE',
+          '2ª SÉRIE',
+          '3ª SÉRIE',
+          '9º ANO']
+
+df_escolas = df_escolas[df_escolas['SÉRIE'].isin(series)]
+
+
+# Manter o registro somente dos alunos Matriculados
+df_escolas = df_escolas[df_escolas['SITUAÇÃO'].isin(['MATRICULADO'])]
+
+
+# Contar a quantidade de escolas para saber as vagas de coordenadores
+# Manter as colunas para a quantidade de escolas
+df_escolas = df_escolas[['DIREC', 'CÓDIGO INEP ESCOLA', 'ESCOLA']]
+
+# Excluir duplicatas de 'CÓDIGO INEP ESCOLA'
+df_escolas = df_escolas.drop_duplicates(subset='CÓDIGO INEP ESCOLA', keep='first')
+
+# Total de escolas: 464
+len(df_escolas['CÓDIGO INEP ESCOLA'].unique())
+
+
+# Criar base das escolas e indicar quais séries são ofertadas
+# DATAFRAMES RESERVAS
+df_professores = df_geral_26.copy(deep=True)
+
+# Manter somente as Séries de interesse:
+series = ['1ª SÉRIE',
+          '2ª SÉRIE',
+          '3ª SÉRIE',
+          '9º ANO']
+
+df_professores = df_professores[df_professores['SÉRIE'].isin(series)]
+
+
+# Manter o registro somente dos alunos Matriculados
+df_professores = df_professores[df_professores['SITUAÇÃO'].isin(['MATRICULADO'])]
+
+# Manter somente as colunas de interesse
+df_professores = df_professores[['DIREC', 'CÓDIGO INEP ESCOLA', 'ESCOLA', 'SÉRIE']]
+
+# Agrupar por 'CÓDIGO INEP' e a 'SÉRIE' deve indicar todas as séries separadas por vírgula
+df_professores_agrupado = (
+    df_professores
+    .groupby('CÓDIGO INEP ESCOLA', as_index=False)
+    .agg({
+        'DIREC': 'first',
+        'ESCOLA': 'first',
+        'SÉRIE': lambda x: ', '.join(x.astype(str).unique())
+    })
+)
+
+
+# Criar a coluna 'OFERTA_9EF' para saber se a escola oferece 9º ano EF (se tem SÉRIE = '9º ANO')
+df_professores_agrupado['OFERTA_9EF'] = np.where(
+    df_professores_agrupado['SÉRIE'].str.contains('9º ANO', na=False),
+    'Sim',
+    'Não'
+)
+
+
+# Criar a coluna 'OFERTA_EM' para saber se a escola oferece Ensino Médio (se tem SÉRIE = '1ª SÉRIE' ou '2ª SÉRIE' ou '3ª SÉRIE')
+df_professores_agrupado['OFERTA_EM'] = np.where(
+    df_professores_agrupado['SÉRIE'].str.contains(
+        '1ª SÉRIE|2ª SÉRIE|3ª SÉRIE',
+        na=False
+    ),
+    'Sim',
+    'Não'
+)
+
+# Criar coluna 'Vagas - Coordenadores' para indicar a vaga de 1 coordenador por escola
+df_professores_agrupado['Vagas - Coordenadores'] = 1
+
+
+# Criar as colunas de vagas para cada componente e cada etapa de ensino de acordo com os valores das colunas 'OFERTA_9EF' e 'OFERTA_EM'
+# Vagas AF - LP; Vagas AF - MT; Vagas EM - LP; Vagas EM - MT
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+##### Exportar para Excel
+with pd.ExcelWriter('20260827_professores_formacao_2026.xlsx') as writer:
+    df_professores_agrupado.to_excel(writer, sheet_name='Professores', index=False)
+    df_escolas.to_excel(writer, sheet_name='Coordenadores_Escolas', index=False)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ##### Saber o número de escolas para saber a quantidade de vagas para coordenadores
+##### LÓGICA ANTIGA #####
+
 # Relatório geral de matrículas - 2026
 df_geral_26 = pd.read_excel(r"C:\Users\hugob\Downloads\20260826_Relatório Geral de Estudantes - Matrículas.xlsx", skiprows=2)
 
@@ -69,8 +224,6 @@ df_geral_26 = df_geral_26[df_geral_26['SÉRIE'].isin(series)]
 
 # Manter o registro somente dos alunos Matriculados
 df_geral_26 = df_geral_26[df_geral_26['SITUAÇÃO'].isin(['MATRICULADO'])]
-
-df_geral_26['ETAPA DE ENSINO'].unique()
 
 
 # Contar a quantidade de escolas para saber as vagas de coordenadores
@@ -113,7 +266,7 @@ componentes = ['Língua Portuguesa',
 df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['COMPONENTE'].isin(componentes)]
 
 
-# Manter somente as Séries de interesse (Anos Finais Ensino Fundamentla e Ensino Médio)
+# Manter somente as Séries de interesse (Anos Finais Ensino Fundamental e Ensino Médio)
 series = ['1ª SÉRIE',
           '2ª SÉRIE',
           '3ª SÉRIE',
@@ -121,9 +274,9 @@ series = ['1ª SÉRIE',
 
 df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['SÉRIE'].isin(series)]
 
-
+# NÃO TEVE EXCLUSÃO DE ETAPA, pois tem que incluir os cursos técnicos articulados e integrados ao Médio, pois esses estudantes tem ensino regular também
 # Manter somente as etapas de ensino de interesse (excluir EPT)
-df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['ETAPA DE ENSINO'].isin(['ENSINO MÉDIO POTIGUAR', 'ENSINO FUNDAMENTAL'])]
+# df_freq_prof_26 = df_freq_prof_26[df_freq_prof_26['ETAPA DE ENSINO'].isin(['ENSINO MÉDIO POTIGUAR', 'ENSINO FUNDAMENTAL'])]
 
 
 # Eliminar duplicatas de professores (MATRÍCULA) mantendo somente o maior número de 'AULAS PREVISTAS'
